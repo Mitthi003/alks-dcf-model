@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALKS — 10-Year DCF Model</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111418;
+    --surface2: #161b22;
+    --surface3: #1c2230;
+    --border: #1e2940;
+    --border2: #243050;
+    --accent: #00d4aa;
+    --accent2: #0099ff;
+    --accent3: #ff6b35;
+    --accent4: #a78bfa;
+    --red: #f05252;
+    --green: #00d4aa;
+    --yellow: #fbbf24;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display:flex; align-items:center; gap:20px; }
+  .ticker {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+  .company-name { font-size:13px; color:var(--text2); font-weight:500; }
+  .price-block { display:flex; gap:24px; align-items:center; }
+  .current-price {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .price-meta { display:flex; flex-direction:column; gap:2px; }
+  .price-meta span { font-family:var(--mono); font-size:11px; color:var(--text3); }
+  .badge {
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .badge-buy { background: rgba(0,212,170,0.15); color: var(--accent); border:1px solid rgba(0,212,170,0.3); }
+  .badge-date { background: rgba(148,163,184,0.1); color:var(--text3); font-size:10px; padding:3px 8px; border-radius:2px; }
+  .header-right { display:flex; gap:12px; align-items:center; }
+
+  /* ── TABS ── */
+  .tabs {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    padding: 0 28px;
+    gap: 0;
+  }
+  .tab {
+    padding: 11px 20px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text3);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── CONTENT ── */
+  .content { padding: 20px 28px 40px; }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .panel-header {
+    background: var(--surface2);
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .panel-subtitle { font-size:11px; color:var(--text3); }
+
+  /* ── GRID ── */
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .mb-16 { margin-bottom:16px; }
+  .mb-20 { margin-bottom:20px; }
+
+  /* ── KPI CARDS ── */
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+  }
+  .kpi-label { font-family:var(--mono); font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; }
+  .kpi-value { font-family:var(--mono); font-size:20px; font-weight:600; color:var(--text); }
+  .kpi-sub { font-size:11px; color:var(--text3); margin-top:3px; }
+  .kpi-value.green { color:var(--accent); }
+  .kpi-value.blue { color:var(--accent2); }
+  .kpi-value.orange { color:var(--accent3); }
+  .kpi-value.purple { color:var(--accent4); }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:11.5px; }
+  thead th {
+    background: var(--surface2);
+    padding: 8px 12px;
+    text-align:right;
+    font-size:10px;
+    font-weight:600;
+    color:var(--text3);
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    border-bottom: 1px solid var(--border);
+    white-space:nowrap;
+  }
+  thead th:first-child { text-align:left; min-width:180px; }
+  tbody tr { border-bottom: 1px solid rgba(30,41,64,0.5); }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  tbody td { padding: 7px 12px; text-align:right; color:var(--text2); white-space:nowrap; }
+  tbody td:first-child { text-align:left; color:var(--text); font-weight:500; }
+  .row-section td { 
+    background: var(--surface2); 
+    color:var(--text3); 
+    font-size:9.5px; 
+    text-transform:uppercase; 
+    letter-spacing:0.8px;
+    padding:5px 12px;
+    font-weight:600;
+  }
+  .row-total td { 
+    background: rgba(0,212,170,0.06); 
+    color:var(--accent) !important; 
+    font-weight:600;
+    border-top: 1px solid rgba(0,212,170,0.2) !important;
+    border-bottom: 1px solid rgba(0,212,170,0.2) !important;
+  }
+  .row-subtotal td { color:var(--text) !important; font-weight:500; border-top:1px solid var(--border); }
+  .row-key td { color:var(--accent2) !important; font-weight:600; }
+  .row-fcf td { color:var(--accent4) !important; font-weight:600; }
+  .actual-col { color: var(--text3) !important; }
+  .proj-col { color: var(--text) !important; }
+  .highlight-cell { color: var(--accent) !important; font-weight:600; }
+
+  /* ── ASSUMPTIONS PANEL ── */
+  .assumption-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; padding:16px; }
+  .assumption-group { }
+  .assumption-group-title { font-family:var(--mono); font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+  .assumption-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .assumption-label { font-size:12px; color:var(--text2); }
+  .assumption-input {
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 8px;
+    width: 80px;
+    text-align: right;
+    border-radius: 3px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .assumption-input:focus { border-color: var(--accent); }
+  .assumption-input:hover { border-color: var(--border2); background: var(--surface2); }
+
+  /* ── VALUATION OUTPUT ── */
+  .val-bridge {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 16px;
+    flex-wrap: wrap;
+  }
+  .val-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    border-radius: 4px;
+    text-align:center;
+    min-width: 130px;
+  }
+  .val-label { font-family:var(--mono); font-size:9px; color:var(--text3); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px; }
+  .val-value { font-family:var(--mono); font-size:15px; font-weight:700; color:var(--text); }
+  .val-arrow {
+    color: var(--text3);
+    font-size: 18px;
+    padding: 0 8px;
+    font-family: var(--mono);
+  }
+  .val-item.highlight { background: rgba(0,212,170,0.1); border-color: rgba(0,212,170,0.3); }
+  .val-item.highlight .val-value { color: var(--accent); font-size:18px; }
+
+  /* ── SENSITIVITY TABLE ── */
+  .sens-table { font-family:var(--mono); font-size:11px; border-collapse:collapse; width:100%; }
+  .sens-table th { padding:7px 14px; background:var(--surface2); color:var(--text3); font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; border:1px solid var(--border); }
+  .sens-table td { padding:7px 14px; border:1px solid var(--border); text-align:center; font-weight:500; transition: background 0.1s; }
+  .sens-low { background: rgba(240,82,82,0.12); color:#f87171; }
+  .sens-mid { background: rgba(251,191,36,0.1); color:#fbbf24; }
+  .sens-high { background: rgba(0,212,170,0.12); color:var(--accent); }
+  .sens-current { background: rgba(0,153,255,0.15) !important; color:var(--accent2) !important; outline:1px solid var(--accent2); }
+  .sens-axis { background:var(--surface2); color:var(--text3); font-weight:600; font-size:10px; }
+
+  /* ── WATERFALL BAR ── */
+  .progress-bar-wrap { padding:0 16px 16px; }
+  .progress-label { font-family:var(--mono); font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; display:flex; justify-content:space-between; }
+  .progress-bar { height:6px; background:var(--surface3); border-radius:3px; overflow:hidden; }
+  .progress-fill { height:100%; border-radius:3px; transition: width 0.5s ease; }
+
+  /* ── PRODUCT MIX BARS ── */
+  .product-bar { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .product-name { font-family:var(--mono); font-size:11px; color:var(--text2); width:120px; flex-shrink:0; }
+  .product-track { flex:1; height:5px; background:var(--surface3); border-radius:3px; overflow:hidden; }
+  .product-fill { height:100%; border-radius:3px; transition: width 0.5s; }
+  .product-val { font-family:var(--mono); font-size:11px; color:var(--text2); width:55px; text-align:right; flex-shrink:0; }
+
+  /* ── FOOTNOTES ── */
+  .footnote { font-size:10px; color:var(--text3); padding:10px 16px; border-top:1px solid var(--border); line-height:1.6; }
+
+  /* ── SECTION DIVIDER ── */
+  .section-divider {
+    display:flex; align-items:center; gap:10px; margin:20px 0 14px;
+  }
+  .section-divider-line { flex:1; height:1px; background:var(--border); }
+  .section-divider-text { font-family:var(--mono); font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:1px; white-space:nowrap; }
+
+  /* ── TAG ── */
+  .tag { 
+    display:inline-block; 
+    padding:1px 6px; 
+    border-radius:2px; 
+    font-family:var(--mono); 
+    font-size:9px; 
+    font-weight:600;
+    letter-spacing:0.5px;
+    vertical-align:middle;
+    margin-left:6px;
+  }
+  .tag-actual { background:rgba(100,116,139,0.2); color:var(--text3); }
+  .tag-est { background:rgba(0,153,255,0.15); color:var(--accent2); }
+  .tag-pill { background:rgba(167,139,250,0.15); color:var(--accent4); }
+
+  /* ── TOOLTIP ── */
+  .info-icon { 
+    display:inline-block; width:14px; height:14px; border-radius:50%; 
+    background:var(--surface3); border:1px solid var(--border2);
+    font-size:9px; color:var(--text3); text-align:center; line-height:13px;
+    cursor:help; margin-left:4px; vertical-align:middle;
+  }
+
+  /* hidden tabs */
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+
+  /* pipeline card */
+  .pipeline-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius:4px;
+    padding:12px 14px;
+  }
+  .pipeline-stage { 
+    display:inline-block; padding:2px 8px; border-radius:2px; font-family:var(--mono); font-size:9px; font-weight:700; letter-spacing:0.5px;
+  }
+  .stage-3 { background:rgba(0,212,170,0.15); color:var(--accent); }
+  .stage-2 { background:rgba(0,153,255,0.15); color:var(--accent2); }
+  .stage-btd { background:rgba(251,191,36,0.15); color:var(--yellow); }
+  .stage-com { background:rgba(167,139,250,0.15); color:var(--accent4); }
+
+  .upside-banner {
+    background: linear-gradient(135deg, rgba(0,212,170,0.08), rgba(0,153,255,0.05));
+    border:1px solid rgba(0,212,170,0.2);
+    border-radius:4px;
+    padding:12px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:16px;
+  }
+  .upside-text { font-family:var(--mono); font-size:11px; color:var(--text2); }
+  .upside-value { font-family:var(--mono); font-size:24px; font-weight:700; color:var(--accent); }
+  .upside-label { font-family:var(--mono); font-size:10px; color:var(--text3); text-align:right; }
+
+  input[type=range] {
+    -webkit-appearance:none; width:100%; height:4px; border-radius:2px;
+    background: var(--surface3); outline:none; cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
+    background: var(--accent); cursor:pointer; border:2px solid var(--bg);
+  }
+  .slider-row { margin-bottom:14px; }
+  .slider-label-row { display:flex; justify-content:space-between; margin-bottom:4px; }
+  .slider-label { font-size:11px; color:var(--text2); }
+  .slider-val { font-family:var(--mono); font-size:11px; color:var(--accent); font-weight:600; }
+
+  .dcf-output-grid {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:16px;
+    padding:16px;
+  }
+
+  .waterfall {
+    padding: 16px;
+  }
+  .wf-row {
+    display:flex; align-items:center; gap:10px; margin-bottom:5px;
+  }
+  .wf-label { font-family:var(--mono); font-size:11px; color:var(--text2); width:200px; flex-shrink:0; }
+  .wf-bar-wrap { flex:1; height:22px; position:relative; }
+  .wf-bar { position:absolute; height:100%; border-radius:2px; display:flex; align-items:center; justify-content:flex-end; padding-right:6px; font-family:var(--mono); font-size:10px; font-weight:600; transition:width 0.6s ease; }
+  .wf-val { font-family:var(--mono); font-size:11px; color:var(--text2); width:80px; text-align:right; flex-shrink:0; }
+
+  .recommendation-box {
+    background: linear-gradient(135deg, rgba(0,212,170,0.06), rgba(0,153,255,0.04));
+    border: 1px solid rgba(0,212,170,0.25);
+    border-radius:4px;
+    padding:16px 20px;
+    margin-bottom:16px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div>
+      <div class="ticker">ALKS</div>
+      <div class="company-name">Alkermes plc — Neuroscience &amp; Addiction Medicine</div>
+    </div>
+    <div style="width:1px;height:36px;background:var(--border);"></div>
+    <div class="price-block">
+      <div class="current-price">$27.22</div>
+      <div class="price-meta">
+        <span>NASDAQ — as of 18 Mar 2026</span>
+        <span>Mkt Cap: $4.67B &nbsp;|&nbsp; 52W: $25.16 – $36.32</span>
+      </div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="badge badge-buy">▲ BUY</span>
+    <div style="text-align:right;">
+      <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--accent)" id="header-target">$31.35</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">Target Price</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--green)" id="header-upside">+15.1%</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">Implied Upside</div>
+    </div>
+    <span class="badge-date">10-YR DCF &nbsp;|&nbsp; MAR 2026</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('overview')">Overview</div>
+  <div class="tab" onclick="showTab('revenue')">Revenue Build</div>
+  <div class="tab" onclick="showTab('income')">Income Statement</div>
+  <div class="tab" onclick="showTab('dcf')">DCF Model</div>
+  <div class="tab" onclick="showTab('sensitivity')">Sensitivity</div>
+</div>
+
+<!-- ===================== OVERVIEW TAB ===================== -->
+<div class="content tab-content active" id="tab-overview">
+
+  <div class="recommendation-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">Investment Thesis</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.6;max-width:680px;">
+          Alkermes is a de-levered, cash-generative pure-play neuroscience platform with three durable commercial franchises (VIVITROL, ARISTADA, LYBALVI), a transformative narcolepsy pipeline (ALKS 2680 — FDA Breakthrough Therapy), and the Feb 2026 Avadel acquisition (LUMRYZ) that materially expands its sleep medicine franchise. Trading at &lt;20× 2026E adj. earnings on a debt-adjusted basis, ALKS offers significant operating leverage as the pipeline matures.
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:var(--accent)" id="ov-target">$31.35</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">12-Month Target</div>
+        <div style="font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600;" id="ov-upside">+15.1% Upside</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="grid-4 mb-16">
+    <div class="kpi-card">
+      <div class="kpi-label">FY2025A Revenue</div>
+      <div class="kpi-value">$1.495B</div>
+      <div class="kpi-sub">-4.0% vs FY2024A (INVEGA royalty expiry)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">FY2025A Adj. EBITDA</div>
+      <div class="kpi-value blue">$394M</div>
+      <div class="kpi-sub">26.4% margin</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Net Debt (post-Avadel)</div>
+      <div class="kpi-value orange">~$1.0B</div>
+      <div class="kpi-sub">$1.525B term loans – ~$525M cash</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">FY2026E Revenue</div>
+      <div class="kpi-value green">~$1.87B</div>
+      <div class="kpi-sub">Guided $1.73–1.84B + LUMRYZ upside</div>
+    </div>
+  </div>
+
+  <div class="grid-2 mb-16">
+    <!-- Product revenue 2025A -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">FY2025A — Revenue by Product</span>
+        <span class="panel-subtitle">$1,495M Total</span>
+      </div>
+      <div style="padding:14px 16px;">
+        <div class="product-bar">
+          <div class="product-name">VIVITROL</div>
+          <div class="product-track"><div class="product-fill" style="width:78%;background:var(--accent2);"></div></div>
+          <div class="product-val">$467.9M</div>
+        </div>
+        <div class="product-bar">
+          <div class="product-name">ARISTADA</div>
+          <div class="product-track"><div class="product-fill" style="width:62%;background:var(--accent4);"></div></div>
+          <div class="product-val">$370.0M</div>
+        </div>
+        <div class="product-bar">
+          <div class="product-name">LYBALVI</div>
+          <div class="product-track"><div class="product-fill" style="width:58%;background:var(--accent);"></div></div>
+          <div class="product-val">$346.7M</div>
+        </div>
+        <div class="product-bar">
+          <div class="product-name">Mfg / Royalty</div>
+          <div class="product-track"><div class="product-fill" style="width:49%;background:var(--text3);"></div></div>
+          <div class="product-val">$291.3M</div>
+        </div>
+        <div class="product-bar">
+          <div class="product-name">LUMRYZ (acquired)</div>
+          <div class="product-track"><div class="product-fill" style="width:13%;background:var(--yellow);"></div></div>
+          <div class="product-val">—</div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:8px;">LUMRYZ (Avadel) acquired Feb 12, 2026 — not in FY2025 results</div>
+      </div>
+    </div>
+
+    <!-- Pipeline -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Pipeline — Key Catalysts</span>
+        <span class="panel-subtitle">ALKS 2680 · Breakthrough Therapy Designation (Jan 2026)</span>
+      </div>
+      <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+        <div class="pipeline-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div style="font-weight:600;color:var(--text);font-size:12px;">Alixorexton (ALKS 2680) — Narcolepsy Type 1</div>
+            <div>
+              <span class="pipeline-stage stage-3">Phase 3</span>
+              <span class="pipeline-stage stage-btd" style="margin-left:4px;">BTD</span>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text3);">Orexin receptor agonist. Phase 3 (VIBRANCE-NT1) initiated Mar 2026. FDA Breakthrough Therapy Jan 2026. Potential approval ~2028–2029. <span style="color:var(--accent);">Key DCF catalyst.</span></div>
+        </div>
+        <div class="pipeline-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div style="font-weight:600;color:var(--text);font-size:12px;">Alixorexton — Narcolepsy Type 2 / Idiopathic Hypersomnia</div>
+            <span class="pipeline-stage stage-2">Phase 2</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);">VIBRANCE-NT2 and VIBRANCE-IH studies ongoing. Data expected H2 2025/2026. Addressable market expansion.</div>
+        </div>
+        <div class="pipeline-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div style="font-weight:600;color:var(--text);font-size:12px;">LUMRYZ® (sodium oxybate ER) — Narcolepsy (Avadel)</div>
+            <span class="pipeline-stage stage-com">Commercialised</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);">FDA-approved for cataplexy/EDS in narcolepsy. Acquired with Avadel Feb 2026. ~$150–200M LTM revenue. Strong growth trajectory.</div>
+        </div>
+        <div class="pipeline-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div style="font-weight:600;color:var(--text);font-size:12px;">ALKS 4510 / ALKS 7290 — Orexin-2 Agonists</div>
+            <span class="pipeline-stage stage-2">Preclinical–Ph1</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);">Next-gen orexin-2 receptor agonists for broader neurological disorders. Early-stage pipeline optionality.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Valuation Summary -->
+  <div class="panel mb-16">
+    <div class="panel-header">
+      <span class="panel-title">Valuation Summary — DCF Output</span>
+      <span class="panel-subtitle">WACC: 8.5% &nbsp;|&nbsp; TGR: 3.0% &nbsp;|&nbsp; Shares: 171.5M</span>
+    </div>
+    <div class="val-bridge">
+      <div class="val-item">
+        <div class="val-label">PV of FCFs (Yrs 1–10)</div>
+        <div class="val-value" id="ov-pv-fcf">$2,484M</div>
+      </div>
+      <div class="val-arrow">+</div>
+      <div class="val-item">
+        <div class="val-label">PV Terminal Value</div>
+        <div class="val-value" id="ov-pv-tv">$6,873M</div>
+      </div>
+      <div class="val-arrow">=</div>
+      <div class="val-item">
+        <div class="val-label">Enterprise Value</div>
+        <div class="val-value" id="ov-ev">$9,357M</div>
+      </div>
+      <div class="val-arrow">–</div>
+      <div class="val-item">
+        <div class="val-label">Net Debt</div>
+        <div class="val-value" id="ov-nd">$1,000M</div>
+      </div>
+      <div class="val-arrow">=</div>
+      <div class="val-item">
+        <div class="val-label">Equity Value</div>
+        <div class="val-value" id="ov-eq">$8,357M</div>
+      </div>
+      <div class="val-arrow">÷</div>
+      <div class="val-item">
+        <div class="val-label">Diluted Shares</div>
+        <div class="val-value">171.5M</div>
+      </div>
+      <div class="val-arrow">=</div>
+      <div class="val-item highlight">
+        <div class="val-label">Target Price</div>
+        <div class="val-value" id="ov-tp">$31.35</div>
+      </div>
+    </div>
+    <div class="footnote">All figures in USD millions unless otherwise stated. DCF uses unlevered free cash flow (FCFF) approach. Projections: FY2026E–FY2035E. Current price: $27.22 (Mar 18, 2026). Net debt = $1,525M term loans (Avadel acquisition) less ~$525M est. remaining cash.</div>
+  </div>
+
+</div>
+
+<!-- ===================== REVENUE BUILD TAB ===================== -->
+<div class="content tab-content" id="tab-revenue">
+
+  <div class="panel mb-16">
+    <div class="panel-header">
+      <span class="panel-title">Revenue Build by Product (USD Millions)</span>
+      <span class="panel-subtitle">2024A–2035E</span>
+    </div>
+    <div class="table-wrap">
+      <table id="rev-table">
+        <thead>
+          <tr>
+            <th>Product / Segment</th>
+            <th>2024A<br><span class="tag tag-actual">ACTUAL</span></th>
+            <th>2025A<br><span class="tag tag-actual">ACTUAL</span></th>
+            <th>2026E<br><span class="tag tag-est">EST</span></th>
+            <th>2027E<br><span class="tag tag-est">EST</span></th>
+            <th>2028E<br><span class="tag tag-est">EST</span></th>
+            <th>2029E<br><span class="tag tag-est">EST</span></th>
+            <th>2030E<br><span class="tag tag-est">EST</span></th>
+            <th>2031E<br><span class="tag tag-est">EST</span></th>
+            <th>2032E<br><span class="tag tag-est">EST</span></th>
+            <th>2033E<br><span class="tag tag-est">EST</span></th>
+            <th>2034E<br><span class="tag tag-est">EST</span></th>
+            <th>2035E<br><span class="tag tag-est">EST</span></th>
+          </tr>
+        </thead>
+        <tbody id="rev-tbody">
+        </tbody>
+      </table>
+    </div>
+    <div class="footnote">VIVITROL: alcohol/opioid dependence. ARISTADA: schizophrenia injectable. LYBALVI: schizophrenia/bipolar oral. LUMRYZ: acquired with Avadel Feb 12, 2026; projected at ~$200M for ~10.5 months in 2026, ramping to ~$550M by 2030 as narcolepsy franchise grows. ALKS 2680 (alixorexton): assumed Phase 3 completion ~2027, FDA submission ~2028, launch ~2029. Mfg/Royalty: declining tail as INVEGA and VUMERITY royalties mature. Growth rates are analyst estimates.</div>
+  </div>
+
+  <div class="grid-2 mb-16">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">YoY Revenue Growth (%)</span></div>
+      <div class="table-wrap">
+        <table id="growth-table">
+          <thead><tr>
+            <th>Product</th>
+            <th>2025A</th><th>2026E</th><th>2027E</th><th>2028E</th><th>2029E</th><th>2030E</th>
+          </tr></thead>
+          <tbody id="growth-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">2026E Revenue Mix</span></div>
+      <div style="padding:14px 16px;" id="mix-bars">
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== INCOME STATEMENT TAB ===================== -->
+<div class="content tab-content" id="tab-income">
+
+  <div class="panel mb-16">
+    <div class="panel-header">
+      <span class="panel-title">Projected Income Statement &amp; FCFF (USD Millions)</span>
+      <span class="panel-subtitle">Unlevered approach — FCFF used in DCF</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Line Item</th>
+            <th>2024A</th><th>2025A</th><th>2026E</th><th>2027E</th><th>2028E</th><th>2029E</th><th>2030E</th><th>2031E</th><th>2032E</th><th>2033E</th><th>2034E</th><th>2035E</th>
+          </tr>
+        </thead>
+        <tbody id="is-tbody"></tbody>
+      </table>
+    </div>
+    <div class="footnote">EBITDA margin assumes operating leverage improvement as pipeline royalties/sales ramp. D&A ~3% of revenue. Capex ~3.5% (asset-light post-Athlone disposal). ΔWC ~1% of revenue increment. Tax rate 17% (Irish holding company, guided rate). FCFF = NOPAT + D&A – Capex – ΔNWC.</div>
+  </div>
+
+</div>
+
+<!-- ===================== DCF TAB ===================== -->
+<div class="content tab-content" id="tab-dcf">
+
+  <div class="grid-2 mb-16">
+    <!-- Assumptions -->
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">DCF Assumptions &amp; Controls</span></div>
+      <div style="padding:16px;">
+        <div class="assumption-group-title">Discount Rate</div>
+        <div class="slider-row">
+          <div class="slider-label-row"><span class="slider-label">WACC</span><span class="slider-val" id="lbl-wacc">8.5%</span></div>
+          <input type="range" min="6" max="14" step="0.5" value="8.5" id="sl-wacc" oninput="updateAll()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label-row"><span class="slider-label">Terminal Growth Rate</span><span class="slider-val" id="lbl-tgr">3.0%</span></div>
+          <input type="range" min="1" max="5" step="0.5" value="3.0" id="sl-tgr" oninput="updateAll()">
+        </div>
+
+        <div class="assumption-group-title" style="margin-top:16px;">Revenue Growth</div>
+        <div class="slider-row">
+          <div class="slider-label-row"><span class="slider-label">2026E–2028E Avg Growth</span><span class="slider-val" id="lbl-g1">18.0%</span></div>
+          <input type="range" min="8" max="30" step="0.5" value="18" id="sl-g1" oninput="updateAll()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label-row"><span class="slider-label">2029E–2031E Avg Growth</span><span class="slider-val" id="lbl-g2">12.0%</span></div>
+          <input type="range" min="4" max="20" step="0.5" value="12" id="sl-g2" oninput="updateAll()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label-row"><span class="slider-label">2032E–2035E Avg Growth</span><span class="slider-val" id="lbl-g3">5.0%</span></div>
+          <input type="range" min="1" max="12" step="0.5" value="5" id="sl-g3" oninput="updateAll()">
+        </div>
+
+        <div class="assumption-group-title" style="margin-top:16px;">Margin Assumptions</div>
+        <div class="slider-row">
+          <div class="slider-label-row"><span class="slider-label">Peak EBITDA Margin (2030+)</span><span class="slider-val" id="lbl-em">30.0%</span></div>
+          <input type="range" min="18" max="45" step="0.5" value="30" id="sl-em" oninput="updateAll()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label-row"><span class="slider-label">Tax Rate</span><span class="slider-val" id="lbl-tr">17.0%</span></div>
+          <input type="range" min="12" max="25" step="0.5" value="17" id="sl-tr" oninput="updateAll()">
+        </div>
+
+        <div class="assumption-group-title" style="margin-top:16px;">Balance Sheet</div>
+        <div class="slider-row">
+          <div class="slider-label-row"><span class="slider-label">Net Debt ($M)</span><span class="slider-val" id="lbl-nd">$1,000M</span></div>
+          <input type="range" min="0" max="2000" step="50" value="1000" id="sl-nd" oninput="updateAll()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label-row"><span class="slider-label">Diluted Shares (M)</span><span class="slider-val" id="lbl-sh">171.5M</span></div>
+          <input type="range" min="150" max="200" step="0.5" value="171.5" id="sl-sh" oninput="updateAll()">
+        </div>
+      </div>
+    </div>
+
+    <!-- DCF Output -->
+    <div>
+      <!-- Upside banner -->
+      <div class="upside-banner mb-16">
+        <div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">DCF-Derived Target Price vs. Current</div>
+          <div style="font-family:var(--mono);font-size:13px;color:var(--text2);">Current: $27.22 &nbsp;→&nbsp; Target: <span id="dcf-tp" style="color:var(--accent);font-weight:700;">$31.35</span></div>
+        </div>
+        <div style="text-align:right;">
+          <div class="upside-value" id="dcf-upside">+15.1%</div>
+          <div class="upside-label">Implied Upside</div>
+        </div>
+      </div>
+
+      <div class="panel mb-16">
+        <div class="panel-header"><span class="panel-title">Enterprise Value Bridge</span></div>
+        <div class="waterfall" id="waterfall-section">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="kpi-card">
+          <div class="kpi-label">PV of FCFs (10yr)</div>
+          <div class="kpi-value blue" id="dcf-pv-fcf">$2,484M</div>
+          <div class="kpi-sub" id="dcf-pct-fcf">26.5% of EV</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">PV Terminal Value</div>
+          <div class="kpi-value purple" id="dcf-pv-tv">$6,873M</div>
+          <div class="kpi-sub" id="dcf-pct-tv">73.5% of EV</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Enterprise Value</div>
+          <div class="kpi-value" id="dcf-ev">$9,357M</div>
+          <div class="kpi-sub">EV/2026E Revenue: <span id="dcf-ev-rev">—</span>x</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Equity Value</div>
+          <div class="kpi-value green" id="dcf-eq">$8,357M</div>
+          <div class="kpi-sub">= EV – Net Debt</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FCF table -->
+  <div class="panel mb-16">
+    <div class="panel-header">
+      <span class="panel-title">Free Cash Flow to Firm (FCFF) — Year-by-Year</span>
+      <span class="panel-subtitle">USD Millions</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Year</th><th>2026E</th><th>2027E</th><th>2028E</th><th>2029E</th><th>2030E</th><th>2031E</th><th>2032E</th><th>2033E</th><th>2034E</th><th>2035E</th>
+          </tr>
+        </thead>
+        <tbody id="fcf-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== SENSITIVITY TAB ===================== -->
+<div class="content tab-content" id="tab-sensitivity">
+
+  <div class="grid-2 mb-16">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Target Price — WACC × Terminal Growth Rate</span>
+        <span class="panel-subtitle">Current price: $27.22 | <span style="color:var(--accent2);">■</span> = Base case</span>
+      </div>
+      <div style="padding:16px;">
+        <table class="sens-table" id="sens-wacc-tgr"></table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Target Price — WACC × Peak EBITDA Margin</span>
+        <span class="panel-subtitle">TGR fixed at 3.0%</span>
+      </div>
+      <div style="padding:16px;">
+        <table class="sens-table" id="sens-wacc-em"></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel mb-16">
+    <div class="panel-header">
+      <span class="panel-title">Scenario Analysis</span>
+      <span class="panel-subtitle">Bear / Base / Bull scenarios</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left;">Scenario</th>
+            <th>WACC</th><th>TGR</th><th>Peak EBITDA Mg.</th><th>2030E Rev.</th><th>EV ($M)</th><th>Target Price</th><th>Upside</th>
+          </tr>
+        </thead>
+        <tbody id="scenario-tbody">
+        </tbody>
+      </table>
+    </div>
+    <div class="footnote">Bear: ALKS 2680 fails/delays, LYBALVI growth slows, margin headwinds from debt service. Base: ALKS 2680 launches ~2029, LUMRYZ ramps, commercial portfolio sustains mid-teens growth. Bull: ALKS 2680 Breakthrough approval ~2028, full narcolepsy market capture, LUMRYZ accelerates, pipeline optionality (ALKS 4510/7290).</div>
+  </div>
+
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────
+const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035];
+const PROJ_YEARS = [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035];
+
+// Revenue by product ($M) — 2024A and 2025A actuals, 2026–2035 estimates
+const VIVITROL = [457.3, 467.9, 470, 495, 520, 535, 548, 556, 562, 566, 570, 572];
+const ARISTADA  = [346.2, 370.0, 375, 395, 415, 430, 445, 452, 458, 462, 464, 465];
+const LYBALVI   = [280.0, 346.7, 430, 520, 620, 720, 810, 875, 930, 975, 1010, 1040];
+const LUMRYZ    = [0,     0,     200, 280, 360, 450, 540, 610, 660, 700, 730, 755];
+const ALKS2680  = [0,     0,     0,   0,   20,  200, 380, 550, 680, 780, 860, 920];
+const MFG_ROY   = [474.1, 291.3, 255, 235, 215, 200, 185, 170, 160, 152, 145, 140];
+
+const TOTAL_REV = YEARS.map((_,i) => VIVITROL[i]+ARISTADA[i]+LYBALVI[i]+LUMRYZ[i]+ALKS2680[i]+MFG_ROY[i]);
+
+// Fixed actuals for 2024A, 2025A
+const ACTUAL = {
+  rev24: 1557.6, rev25: 1495.0,
+  cogs24: 248.0, cogs25: 196.5,
+  grossP24: 1309.6, grossP25: 1298.5,
+  rd24: 245.3, rd25: 324.0,
+  sga24: 645.2, sga25: 701.5,
+  ebitda24: 375.0, ebitda25: 285.6,
+  adjEbitda25: 394.0,
+  da24: 28, da25: 27,
+  ebit24: 347, ebit25: 258,
+  tax24: 59, tax25: 44,
+  ni24: 372, ni25: 242,
+  capex24: 55, capex25: 52,
+  fcff24: 280, fcff25: 210,
+};
+
+const CURRENT_PRICE = 27.22;
+const SHARES = 171.5;
+
+// ── COMPUTED DCF ──────────────────────────────────────────────────────────
+function getParams() {
+  return {
+    wacc: parseFloat(document.getElementById('sl-wacc').value) / 100,
+    tgr:  parseFloat(document.getElementById('sl-tgr').value)  / 100,
+    g1:   parseFloat(document.getElementById('sl-g1').value)   / 100,
+    g2:   parseFloat(document.getElementById('sl-g2').value)   / 100,
+    g3:   parseFloat(document.getElementById('sl-g3').value)   / 100,
+    em:   parseFloat(document.getElementById('sl-em').value)   / 100,
+    tr:   parseFloat(document.getElementById('sl-tr').value)   / 100,
+    nd:   parseFloat(document.getElementById('sl-nd').value),
+    sh:   parseFloat(document.getElementById('sl-sh').value),
+  };
+}
+
+function buildRevenue(p) {
+  // Base year 2025A
+  const base = ACTUAL.rev25;
+  const revs = [ACTUAL.rev24, base];
+  // Growth phases
+  const growthYears = [p.g1, p.g1, p.g1, p.g2, p.g2, p.g2, p.g3, p.g3, p.g3, p.g3];
+  for (let i=0; i<10; i++) {
+    revs.push(revs[revs.length-1] * (1 + growthYears[i]));
+  }
+  return revs; // 12 values: 2024..2035
+}
+
+function buildEbitdaMargins(p) {
+  // Ramp from 2025A (adj: 26.4%) → peak em
+  const base = 0.264;
+  const peak = p.em;
+  // 2024A ~24%, 2025A 26.4%, then ramp
+  const ms = [0.240, base];
+  const delta = (peak - base) / 8;
+  for (let i=0; i<10; i++) {
+    ms.push(Math.min(peak, base + delta * (i+1)));
+  }
+  return ms;
+}
+
+function buildFCFF(p, revs, margins) {
+  const da_pct = 0.030; // D&A as % of revenue
+  const capex_pct = 0.035;
+  const fcffs = [];
+  for (let i=2; i<12; i++) { // 2026..2035
+    const rev = revs[i];
+    const prevRev = revs[i-1];
+    const ebitda = rev * margins[i];
+    const da = rev * da_pct;
+    const ebit = ebitda - da;
+    const nopat = ebit * (1 - p.tr);
+    const capex = rev * capex_pct;
+    const dwc = Math.max(0, (rev - prevRev) * 0.01);
+    const fcff = nopat + da - capex - dwc;
+    fcffs.push(fcff);
+  }
+  return fcffs;
+}
+
+function computeDCF(p, fcffs) {
+  const pvFCFs = fcffs.map((f, i) => f / Math.pow(1 + p.wacc, i + 1));
+  const sumPV = pvFCFs.reduce((a,b) => a+b, 0);
+  const tv = (fcffs[9] * (1 + p.tgr)) / (p.wacc - p.tgr);
+  const pvTV = tv / Math.pow(1 + p.wacc, 10);
+  const ev = sumPV + pvTV;
+  const equity = ev - p.nd;
+  const tp = equity / p.sh;
+  return { pvFCFs, sumPV, pvTV, ev, equity, tp, tv };
+}
+
+function fmt(n) { return n.toFixed(1); }
+function fmtM(n) { return '$' + Math.round(n).toLocaleString() + 'M'; }
+function fmtPct(n) { return (n*100).toFixed(1) + '%'; }
+function fmtPrice(n) { return '$' + n.toFixed(2); }
+function fmtGrowth(n) { return (n >= 0 ? '+' : '') + (n*100).toFixed(1) + '%'; }
+
+function colorCell(val) {
+  if (val > 40) return 'sens-high';
+  if (val > 20) return 'sens-high';
+  if (val > 0) return 'sens-mid';
+  return 'sens-low';
+}
+
+// ── UPDATE FUNCTIONS ──────────────────────────────────────────────────────
+function updateAll() {
+  const p = getParams();
+
+  // Update slider labels
+  document.getElementById('lbl-wacc').textContent = (p.wacc*100).toFixed(1) + '%';
+  document.getElementById('lbl-tgr').textContent  = (p.tgr*100).toFixed(1) + '%';
+  document.getElementById('lbl-g1').textContent   = (p.g1*100).toFixed(1) + '%';
+  document.getElementById('lbl-g2').textContent   = (p.g2*100).toFixed(1) + '%';
+  document.getElementById('lbl-g3').textContent   = (p.g3*100).toFixed(1) + '%';
+  document.getElementById('lbl-em').textContent   = (p.em*100).toFixed(1) + '%';
+  document.getElementById('lbl-tr').textContent   = (p.tr*100).toFixed(1) + '%';
+  document.getElementById('lbl-nd').textContent   = '$' + p.nd.toLocaleString() + 'M';
+  document.getElementById('lbl-sh').textContent   = p.sh.toFixed(1) + 'M';
+
+  const revs = buildRevenue(p);
+  const margins = buildEbitdaMargins(p);
+  const fcffs = buildFCFF(p, revs, margins);
+  const { pvFCFs, sumPV, pvTV, ev, equity, tp } = computeDCF(p, fcffs);
+
+  const upside = (tp / CURRENT_PRICE - 1);
+
+  // Update header
+  document.getElementById('header-target').textContent = fmtPrice(tp);
+  document.getElementById('header-upside').textContent = fmtGrowth(upside);
+
+  // Overview
+  document.getElementById('ov-target').textContent = fmtPrice(tp);
+  document.getElementById('ov-upside').textContent = fmtGrowth(upside) + ' Upside';
+  document.getElementById('ov-pv-fcf').textContent = fmtM(sumPV);
+  document.getElementById('ov-pv-tv').textContent  = fmtM(pvTV);
+  document.getElementById('ov-ev').textContent = fmtM(ev);
+  document.getElementById('ov-nd').textContent = fmtM(p.nd);
+  document.getElementById('ov-eq').textContent = fmtM(equity);
+  document.getElementById('ov-tp').textContent  = fmtPrice(tp);
+
+  // DCF tab
+  document.getElementById('dcf-tp').textContent = fmtPrice(tp);
+  document.getElementById('dcf-upside').textContent = fmtGrowth(upside);
+  document.getElementById('dcf-pv-fcf').textContent = fmtM(sumPV);
+  document.getElementById('dcf-pct-fcf').textContent = fmt(sumPV/ev*100) + '% of EV';
+  document.getElementById('dcf-pv-tv').textContent  = fmtM(pvTV);
+  document.getElementById('dcf-pct-tv').textContent = fmt(pvTV/ev*100) + '% of EV';
+  document.getElementById('dcf-ev').textContent = fmtM(ev);
+  document.getElementById('dcf-ev-rev').textContent = (ev / revs[2]).toFixed(1);
+  document.getElementById('dcf-eq').textContent = fmtM(equity);
+
+  // Waterfall
+  renderWaterfall(sumPV, pvTV, ev, p.nd, equity, tp);
+
+  // FCF table
+  renderFCFTable(p, revs, margins, fcffs, pvFCFs);
+
+  // Income statement
+  renderIS(p, revs, margins);
+
+  // Sensitivity
+  renderSensitivity(p, revs, margins);
+  renderSensitivityEM(p, revs);
+}
+
+function renderWaterfall(sumPV, pvTV, ev, nd, equity, tp) {
+  const max = ev * 1.05;
+  const items = [
+    { label: 'PV Free Cash Flows (Yr 1–10)', val: sumPV, color: 'var(--accent2)', from: 0 },
+    { label: 'PV Terminal Value', val: pvTV, color: 'var(--accent4)', from: sumPV },
+    { label: 'Enterprise Value', val: ev, color: 'var(--accent)', from: 0, total: true },
+    { label: '— Net Debt', val: -nd, color: 'var(--red)', from: equity < 0 ? 0 : equity },
+    { label: 'Equity Value', val: equity, color: 'var(--green)', from: 0, total: true },
+  ];
+  const html = items.map(it => {
+    const absVal = Math.abs(it.val);
+    const width = (absVal / max * 100).toFixed(1);
+    const fromPct = it.total ? 0 : (it.from / max * 100).toFixed(1);
+    const clr = it.total ? it.color : it.color;
+    const opacity = it.total ? 1 : 0.75;
+    const borderLeft = it.total ? `border-left:2px solid ${it.color};` : '';
+    return `<div class="wf-row">
+      <div class="wf-label" style="color:${it.total?'var(--text)':'var(--text2)'};font-weight:${it.total?600:400}">${it.label}</div>
+      <div class="wf-bar-wrap">
+        <div class="wf-bar" style="left:${fromPct}%;width:${width}%;background:${clr};opacity:${opacity};${borderLeft}">
+          <span style="color:#fff;font-size:9px;"></span>
+        </div>
+      </div>
+      <div class="wf-val" style="color:${it.val<0?'var(--red)':it.total?it.color:'var(--text2)'};">${it.val<0?'(':''}${fmtM(Math.abs(it.val))}${it.val<0?')':''}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('waterfall-section').innerHTML = html;
+}
+
+function renderFCFTable(p, revs, margins, fcffs, pvFCFs) {
+  const da_pct = 0.030, capex_pct = 0.035;
+  const rows = [
+    { label: 'Revenue ($M)', vals: PROJ_YEARS.map((_,i) => fmt(revs[i+2])), cls:'row-subtotal' },
+    { label: 'EBITDA Margin', vals: PROJ_YEARS.map((_,i) => fmtPct(margins[i+2])), cls:'' },
+    { label: 'EBITDA ($M)', vals: PROJ_YEARS.map((_,i) => fmt(revs[i+2]*margins[i+2])), cls:'row-key' },
+    { label: '– D&A (3% Rev)', vals: PROJ_YEARS.map((_,i) => fmt(revs[i+2]*da_pct)), cls:'' },
+    { label: 'EBIT ($M)', vals: PROJ_YEARS.map((_,i) => fmt(revs[i+2]*margins[i+2]-revs[i+2]*da_pct)), cls:'' },
+    { label: '– Tax ('+fmt(p.tr*100)+'%)', vals: PROJ_YEARS.map((_,i) => fmt((revs[i+2]*margins[i+2]-revs[i+2]*da_pct)*p.tr)), cls:'' },
+    { label: 'NOPAT', vals: PROJ_YEARS.map((_,i) => { const ebit=revs[i+2]*margins[i+2]-revs[i+2]*da_pct; return fmt(ebit*(1-p.tr)); }), cls:'row-subtotal' },
+    { label: '+ D&A', vals: PROJ_YEARS.map((_,i) => fmt(revs[i+2]*da_pct)), cls:'' },
+    { label: '– Capex (3.5% Rev)', vals: PROJ_YEARS.map((_,i) => fmt(revs[i+2]*capex_pct)), cls:'' },
+    { label: '– ΔWC (~1%)', vals: PROJ_YEARS.map((_,i) => fmt(Math.max(0,(revs[i+2]-revs[i+1])*0.01))), cls:'' },
+    { label: 'FCFF ($M)', vals: PROJ_YEARS.map((_,i) => fmt(fcffs[i])), cls:'row-fcf' },
+    { label: 'Discount Factor', vals: PROJ_YEARS.map((_,i) => (1/Math.pow(1+p.wacc,i+1)).toFixed(4)), cls:'' },
+    { label: 'PV of FCFF ($M)', vals: pvFCFs.map(v => fmt(v)), cls:'row-key' },
+  ];
+  document.getElementById('fcf-tbody').innerHTML = rows.map(r =>
+    `<tr class="${r.cls}"><td>${r.label}</td>${r.vals.map(v => `<td>${v}</td>`).join('')}</tr>`
+  ).join('');
+}
+
+function renderIS(p, revs, margins) {
+  const da_pct = 0.030, capex_pct = 0.035;
+  const rd_pcts  = [0.157, 0.217, 0.210, 0.205, 0.200, 0.195, 0.185, 0.180, 0.175, 0.170, 0.165, 0.160];
+  const sga_pcts = [0.414, 0.469, 0.445, 0.430, 0.415, 0.400, 0.385, 0.375, 0.365, 0.360, 0.355, 0.350];
+  const cogs_pcts= [0.159, 0.131, 0.140, 0.138, 0.135, 0.132, 0.130, 0.128, 0.126, 0.124, 0.122, 0.120];
+
+  const data = YEARS.map((yr, i) => ({
+    yr, rev:revs[i],
+    cogs: revs[i]*cogs_pcts[i],
+    gp: revs[i]*(1-cogs_pcts[i]),
+    rd: revs[i]*rd_pcts[i],
+    sga: revs[i]*sga_pcts[i],
+    ebitda: revs[i]*margins[i],
+    da: revs[i]*da_pct,
+    ebit: revs[i]*margins[i]-revs[i]*da_pct,
+    nopat: (revs[i]*margins[i]-revs[i]*da_pct)*(1-p.tr),
+    capex: revs[i]*capex_pct,
+    ni: (revs[i]*margins[i]-revs[i]*da_pct)*(1-p.tr) - revs[i]*0.005,
+  }));
+
+  // Override 2024A, 2025A with actuals
+  data[0] = {...data[0], rev:1557.6, cogs:248, gp:1309.6, rd:245.3, sga:645.2, ebitda:375.0, da:28, ebit:347, nopat:288, capex:55, ni:372};
+  data[1] = {...data[1], rev:1495.0, cogs:196.5, gp:1298.5, rd:324.0, sga:701.5, ebitda:285.6, da:27, ebit:258, nopat:214, capex:52, ni:242};
+
+  const rows = [
+    { label:'Total Revenue', key:'rev', cls:'row-subtotal' },
+    { label:'— Cost of Goods Sold', key:'cogs', cls:'', neg:true },
+    { label:'Gross Profit', key:'gp', cls:'row-subtotal' },
+    { label:'Gross Margin %', custom: d => fmtPct(d.gp/d.rev), cls:'' },
+    { label:'SECTION: Operating Expenses', section:true },
+    { label:'— R&D Expense', key:'rd', cls:'', neg:true },
+    { label:'— SG&A Expense', key:'sga', cls:'', neg:true },
+    { label:'EBITDA', key:'ebitda', cls:'row-key' },
+    { label:'EBITDA Margin %', custom: d => fmtPct(d.ebitda/d.rev), cls:'' },
+    { label:'— D&A (3% Rev)', key:'da', cls:'', neg:true },
+    { label:'EBIT', key:'ebit', cls:'row-subtotal' },
+    { label:'EBIT Margin %', custom: d => fmtPct(d.ebit/d.rev), cls:'' },
+    { label:'— Tax', custom: d => fmt(d.ebit*p.tr), cls:'', neg:true },
+    { label:'NOPAT', key:'nopat', cls:'row-subtotal' },
+    { label:'SECTION: Cash Flow', section:true },
+    { label:'— Capital Expenditure', key:'capex', cls:'', neg:true },
+    { label:'FCFF (approx.)', custom: (d,i) => i<2 ? (i===0?'280.0':'210.0') : fmt(d.nopat + d.da - d.capex), cls:'row-fcf' },
+  ];
+
+  document.getElementById('is-tbody').innerHTML = rows.map(r => {
+    if (r.section) return `<tr class="row-section"><td colspan="13">${r.label.replace('SECTION: ','')}</td></tr>`;
+    const cells = data.map((d, i) => {
+      let val;
+      if (r.custom) val = r.custom(d, i);
+      else val = fmt(d[r.key]);
+      const cls = i < 2 ? 'actual-col' : 'proj-col';
+      return `<td class="${cls}">${val}</td>`;
+    });
+    return `<tr class="${r.cls||''}"><td>${r.label}</td>${cells.join('')}</tr>`;
+  }).join('');
+}
+
+function renderRevTable(p) {
+  const products = [
+    { name:'VIVITROL', data: VIVITROL, color:'var(--accent2)' },
+    { name:'ARISTADA', data: ARISTADA, color:'var(--accent4)' },
+    { name:'LYBALVI', data: LYBALVI, color:'var(--accent)' },
+    { name:'LUMRYZ (Avadel)', data: LUMRYZ, color:'var(--yellow)' },
+    { name:'ALKS 2680 (alixorexton)', data: ALKS2680, color:'var(--accent3)' },
+    { name:'Mfg / Royalty Revenue', data: MFG_ROY, color:'var(--text3)' },
+    { name:'TOTAL REVENUE', data: TOTAL_REV, color:'var(--accent)', total:true },
+  ];
+
+  // YoY growth row
+  const growthRow = { name:'— YoY Growth', data: TOTAL_REV.map((v,i) => i===0?null:(v/TOTAL_REV[i-1]-1)) };
+
+  const html = products.map(prod => {
+    const isTotal = prod.total;
+    const cells = prod.data.map((v, i) => {
+      const cls = i < 2 ? 'actual-col' : 'proj-col';
+      const style = isTotal ? `style="color:var(--accent);font-weight:600;"` : '';
+      return `<td class="${cls}" ${style}>${v===0?'—':fmt(v)}</td>`;
+    }).join('');
+    const rowCls = isTotal ? 'row-total' : '';
+    return `<tr class="${rowCls}"><td style="color:${isTotal?'var(--accent)':prod.color||'var(--text)'}">${prod.name}</td>${cells}</tr>`;
+  }).join('');
+
+  const growthHtml = `<tr><td style="color:var(--text3)">YoY Growth</td>${growthRow.data.map((v,i) => {
+    if(v===null) return '<td class="actual-col">—</td>';
+    const cls = i<2?'actual-col':'proj-col';
+    const col = v > 0.15 ? 'var(--accent)' : v > 0 ? 'var(--text2)' : 'var(--red)';
+    return `<td class="${cls}" style="color:${col}">${fmtGrowth(v)}</td>`;
+  }).join('')}</tr>`;
+
+  document.getElementById('rev-tbody').innerHTML = html + growthHtml;
+
+  // Growth sub-table
+  const prodNames = ['VIVITROL','ARISTADA','LYBALVI','LUMRYZ','ALKS 2680'];
+  const prodData = [VIVITROL, ARISTADA, LYBALVI, LUMRYZ, ALKS2680];
+  const showYears = [1,2,3,4,5,6]; // indices into YEARS: 2025,2026,2027,2028,2029,2030
+  document.getElementById('growth-tbody').innerHTML = prodNames.map((name, pi) => {
+    const cells = showYears.map(yi => {
+      const prev = prodData[pi][yi-1];
+      if (!prev || prev===0) return '<td style="color:var(--text3)">N/M</td>';
+      const g = prodData[pi][yi]/prev - 1;
+      const col = g > 0.2 ? 'var(--accent)' : g > 0 ? 'var(--text2)' : 'var(--red)';
+      return `<td style="color:${col}">${fmtGrowth(g)}</td>`;
+    }).join('');
+    return `<tr><td>${name}</td>${cells}</tr>`;
+  }).join('');
+
+  // Mix bars for 2026E
+  const total2026 = TOTAL_REV[2];
+  const prods2026 = [
+    { name:'LYBALVI', val:LYBALVI[2], color:'var(--accent)' },
+    { name:'VIVITROL', val:VIVITROL[2], color:'var(--accent2)' },
+    { name:'LUMRYZ', val:LUMRYZ[2], color:'var(--yellow)' },
+    { name:'ARISTADA', val:ARISTADA[2], color:'var(--accent4)' },
+    { name:'Mfg/Royalty', val:MFG_ROY[2], color:'var(--text3)' },
+    { name:'ALKS 2680', val:ALKS2680[2], color:'var(--accent3)' },
+  ].sort((a,b)=>b.val-a.val);
+
+  document.getElementById('mix-bars').innerHTML = prods2026.map(p => `
+    <div class="product-bar">
+      <div class="product-name" style="color:${p.color}">${p.name}</div>
+      <div class="product-track"><div class="product-fill" style="width:${(p.val/total2026*100).toFixed(0)}%;background:${p.color};"></div></div>
+      <div class="product-val">${p.val===0?'—':'$'+fmt(p.val)+'M'}</div>
+    </div>`).join('');
+}
+
+function renderSensitivity(p, revs, margins) {
+  const waccs = [7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 11.0];
+  const tgrs  = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5];
+
+  let html = '<tr><th>WACC \\ TGR</th>' + tgrs.map(t=>`<th>${t.toFixed(1)}%</th>`).join('') + '</tr>';
+  waccs.forEach(w => {
+    html += `<tr><td class="sens-axis">${w.toFixed(1)}%</td>`;
+    tgrs.forEach(t => {
+      if (w <= t) { html += `<td style="color:var(--text3)">N/M</td>`; return; }
+      const pp = {...p, wacc:w/100, tgr:t/100};
+      const fcffs2 = buildFCFF(pp, revs, margins);
+      const { tp } = computeDCF(pp, fcffs2);
+      const upside = ((tp/CURRENT_PRICE-1)*100).toFixed(1);
+      const isBase = Math.abs(w - p.wacc*100) < 0.1 && Math.abs(t - p.tgr*100) < 0.1;
+      const cls = isBase ? 'sens-current' : tp > CURRENT_PRICE*1.2 ? 'sens-high' : tp > CURRENT_PRICE ? 'sens-mid' : 'sens-low';
+      html += `<td class="${cls}">${fmtPrice(tp)}<br><small style="font-size:9px;opacity:0.8">${upside}%</small></td>`;
+    });
+    html += '</tr>';
+  });
+  document.getElementById('sens-wacc-tgr').innerHTML = html;
+}
+
+function renderSensitivityEM(p, revs) {
+  const waccs = [7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 11.0];
+  const ems   = [0.22, 0.25, 0.28, 0.30, 0.33, 0.36, 0.40];
+
+  let html = '<tr><th>WACC \\ Peak EBITDA</th>' + ems.map(e=>`<th>${(e*100).toFixed(0)}%</th>`).join('') + '</tr>';
+  waccs.forEach(w => {
+    html += `<tr><td class="sens-axis">${w.toFixed(1)}%</td>`;
+    ems.forEach(em => {
+      const pp = {...p, wacc:w/100, em};
+      const margins2 = buildEbitdaMargins(pp);
+      const fcffs2 = buildFCFF(pp, revs, margins2);
+      const { tp } = computeDCF(pp, fcffs2);
+      const upside = ((tp/CURRENT_PRICE-1)*100).toFixed(1);
+      const isBase = Math.abs(w - p.wacc*100) < 0.1 && Math.abs(em - p.em) < 0.01;
+      const cls = isBase ? 'sens-current' : tp > CURRENT_PRICE*1.2 ? 'sens-high' : tp > CURRENT_PRICE ? 'sens-mid' : 'sens-low';
+      html += `<td class="${cls}">${fmtPrice(tp)}<br><small style="font-size:9px;opacity:0.8">${upside}%</small></td>`;
+    });
+    html += '</tr>';
+  });
+  document.getElementById('sens-wacc-em').innerHTML = html;
+}
+
+function renderScenarios() {
+  const scenarios = [
+    { name:'🐻 Bear', wacc:10.5, tgr:2.0, em:0.22, revNote:'~$2.5B by 2030', rev30:2500, bg:'rgba(240,82,82,0.06)', color:'var(--red)' },
+    { name:'📊 Base', wacc:8.5,  tgr:3.0, em:0.30, revNote:'~$3.2B by 2030', rev30:3200, bg:'rgba(0,153,255,0.06)', color:'var(--accent2)' },
+    { name:'🚀 Bull', wacc:7.5,  tgr:3.5, em:0.38, revNote:'~$4.0B by 2030', rev30:4000, bg:'rgba(0,212,170,0.06)', color:'var(--accent)' },
+  ];
+
+  document.getElementById('scenario-tbody').innerHTML = scenarios.map(s => {
+    const p2 = {wacc:s.wacc/100, tgr:s.tgr/100, em:s.em, tr:0.17, nd:1000, sh:171.5, g1:s.name.includes('Bear')?0.10:s.name.includes('Bull')?0.22:0.18, g2:s.name.includes('Bear')?0.06:s.name.includes('Bull')?0.16:0.12, g3:s.name.includes('Bear')?0.02:s.name.includes('Bull')?0.08:0.05};
+    const revs2 = buildRevenue(p2);
+    const m2 = buildEbitdaMargins(p2);
+    const f2 = buildFCFF(p2, revs2, m2);
+    const {ev, tp} = computeDCF(p2, f2);
+    const upside = (tp/CURRENT_PRICE-1);
+    return `<tr style="background:${s.bg}">
+      <td style="color:${s.color};font-weight:600">${s.name}</td>
+      <td>${s.wacc.toFixed(1)}%</td>
+      <td>${s.tgr.toFixed(1)}%</td>
+      <td>${(s.em*100).toFixed(0)}%</td>
+      <td>${s.revNote}</td>
+      <td style="color:var(--text)">${fmtM(ev)}</td>
+      <td style="color:${s.color};font-weight:700">${fmtPrice(tp)}</td>
+      <td style="color:${upside>0?'var(--accent)':'var(--red)'};font-weight:600">${fmtGrowth(upside)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── TAB NAVIGATION ────────────────────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const ids = ['overview','revenue','income','dcf','sensitivity'];
+    t.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.tab-content').forEach(t => {
+    t.classList.toggle('active', t.id === 'tab-'+id);
+  });
+
+  const p = getParams();
+  const revs = buildRevenue(p);
+  const margins = buildEbitdaMargins(p);
+
+  if (id === 'revenue') renderRevTable(p);
+  if (id === 'income') renderIS(p, revs, margins);
+  if (id === 'sensitivity') {
+    const fcffs = buildFCFF(p, revs, margins);
+    renderSensitivity(p, revs, margins);
+    renderSensitivityEM(p, revs);
+    renderScenarios();
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+updateAll();
+</script>
+</body>
+</html>
